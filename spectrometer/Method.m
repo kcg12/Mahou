@@ -2,7 +2,6 @@ classdef Method < handle
   
   %
   %    here are the properties that every data acq method must define
-  %
   
   %the public properties
   properties (Abstract, SetAccess = protected)
@@ -21,13 +20,12 @@ classdef Method < handle
     %the raw data block(s) straight from ADC(s) (the FPAS for example).
     %This will probably be the same for most methods. 
     sample; 
-    
    
     %the sorted data assigned to roles (signal / ref, pumped / unpumped) but still one value per laser
     %shot. This will be different for every method.
     sorted;
     
-    %The chopper, IR_intererogram, HeNe x, HeNe y, etc
+    %The chopper, IR_inteferogram, HeNe x, HeNe y, etc
     aux;
     
     %average each signal and calculate noise for each signal
@@ -57,6 +55,7 @@ classdef Method < handle
   properties (GetAccess = public)
     nPixelsPerArray = 32;
     nArrays = 2;
+    ind_laser = 14;  % NEW
   end
 
   %booleans to communicate about the state of a scan. When
@@ -231,16 +230,16 @@ classdef Method < handle
     function InitializeDiagnostics(obj)
       %setup the panel for this method
       set(obj.handles.textNoise,'String',sprintf('%5.3f',mean(obj.Noise)));
+      set(obj.handles.textLaserNoise ,'String',sprintf('%5.3f',std(obj.aux.laser))); %new
     end
     
     %untested
     function UpdateDiagnostics(obj)
       %mean noise in mOD
       set(obj.handles.textNoise,'String',sprintf('%5.3f',mean(obj.Noise)));
-      
+      set(obj.handles.textLaserNoise ,'String',sprintf('%5.3f',...
+        std(obj.sample(obj.ind_laser,:)./mean(obj.sample(obj.ind_laser))))); %new      
       %noise in %
-      
-      
     end
     
     %untested (should work for all axes that have XDataSource and
