@@ -84,7 +84,7 @@ methods
         return
       end
     end
-    
+     
     obj.source.sampler = sampler; %is there a better way?
     obj.source.gate = gate;
     obj.source.spect = spect;
@@ -350,9 +350,8 @@ methods (Access = protected)
     %signals directly)
     obj.result.freq = obj.freq;
     this_scan =  -1000.*log10(obj.signal.data(1,:)./obj.signal.data(2,:).*obj.signal.data(4,:)./obj.signal.data(3,:));
-    obj.result.data = (obj.result.data.*(obj.i_scan-1) + this_scan)./obj.i_scan;
-    %obj.result.data= this_scan; Does not avg every run!! for show method
-    %only!!
+    %obj.result.data = (obj.result.data.*(obj.i_scan-1) + this_scan)./obj.i_scan;
+    obj.result.data= this_scan;
   end
   
   function ProcessSampleNoise(obj)
