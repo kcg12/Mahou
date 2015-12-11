@@ -132,7 +132,6 @@ methods (Access = protected)
     obj.aux.igram = zeros(1,obj.PARAMS.nShots);
     obj.aux.hene_x = zeros(1,obj.PARAMS.nShots);
     obj.aux.hene_y = zeros(1,obj.PARAMS.nShots);
-    obj.aux.laser = zeros(1,obj.PARAMS.nShots);
   end
     
   function InitializeFreqAxis(obj)

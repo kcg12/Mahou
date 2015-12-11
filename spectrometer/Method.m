@@ -55,7 +55,8 @@ classdef Method < handle
   properties (GetAccess = public)
     nPixelsPerArray = 32;
     nArrays = 2;
-    ind_laser = 14;  % NEW
+%     ind_laser = 78;  % NEW
+    laserPD = struct('raw',[],'bkgd',0,'signal',[],'noise',0,'ind_laser',78);
   end
 
   %booleans to communicate about the state of a scan. When
@@ -230,15 +231,15 @@ classdef Method < handle
     function InitializeDiagnostics(obj)
       %setup the panel for this method
       set(obj.handles.textNoise,'String',sprintf('%5.3f',mean(obj.Noise)));
-      set(obj.handles.textLaserNoise ,'String',sprintf('%5.3f',std(obj.aux.laser))); %new
+      set(obj.handles.textLaserNoise ,'String',sprintf('%5.3f',obj.laserPD.noise)); %new
     end
     
     %untested
     function UpdateDiagnostics(obj)
       %mean noise in mOD
       set(obj.handles.textNoise,'String',sprintf('%5.3f',mean(obj.Noise)));
-      set(obj.handles.textLaserNoise ,'String',sprintf('%5.3f',...
-        std(obj.sample(obj.ind_laser,:)./mean(obj.sample(obj.ind_laser))))); %new      
+      set(obj.handles.textLaserNoise ,'String',sprintf('%5.3f',obj.laserPD.noise));
+       %new      
       %noise in %
     end
     
@@ -307,6 +308,7 @@ classdef Method < handle
   function BackgroundReset(obj)
     obj.background.data = zeros(size(obj.background.data));
     obj.background.std = zeros(size(obj.background.std));
+    obj.laserPD.bkgd = zeros(size(obj.laserPD.bkgd));
     obj.SaveBackground;
   end
     
@@ -331,6 +333,8 @@ classdef Method < handle
       obj.ProcessSampleSort;
       obj.ProcessSampleAvg;
       obj.ProcessSampleBackAvg;
+      
+      obj.ProcessLaserBackAvg;
 
     end
     obj.source.sampler.ClearTask;
@@ -453,13 +457,30 @@ classdef Method < handle
       
       %calc noise (at least an estimate)
       ProcessSampleNoise(obj);
+      
+      obj.ProcessLaserSignal;
     end
 
     function result = TimeFsToBin(time, zerobin)
         result = round(time/fringeToFs)+zerobin;
     end
-
-       
-   end
+    
+    %process the input from the external amplifier output photodiode
+    function ProcessLaserOutput(obj)
+        obj.laserPD.raw = obj.sample(obj.laserPD.ind_laser,:);
+    end
+    
+    function ProcessLaserBackAvg(obj)
+        obj.ProcessLaserOutput;
+        obj.laserPD.bkgd = (obj.laserPD.bkgd.*(obj.i_scan-1) ...
+          + mean(obj.laserPD.raw))./obj.i_scan;
+    end
+    
+    function ProcessLaserSignal(obj)
+        obj.ProcessLaserOutput;
+        obj.laserPD.signal = obj.laserPD.raw - obj.laserPD.bkgd;
+        obj.laserPD.noise = std(obj.laserPD.signal)./mean(obj.laserPD.signal);
+    end
+  end
   
 end
