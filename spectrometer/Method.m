@@ -55,8 +55,10 @@ classdef Method < handle
   properties (GetAccess = public)
     nPixelsPerArray = 32;
     nArrays = 2;
-%     ind_laser = 78;  % NEW
-    laserPD = struct('raw',[],'bkgd',0,'signal',[],'noise',0,'ind_laser',78);
+    % NEW
+    laserPD = struct('raw',[],'bkgd',945,'signal',[],'noise',0,'ind_laser',78);
+    %hard coded the background value of the photodiode + gated integrator
+    %dark signal for now as a starting point.
   end
 
   %booleans to communicate about the state of a scan. When
@@ -238,7 +240,7 @@ classdef Method < handle
     function UpdateDiagnostics(obj)
       %mean noise in mOD
       set(obj.handles.textNoise,'String',sprintf('%5.3f',mean(obj.Noise)));
-      set(obj.handles.textLaserNoise ,'String',sprintf('%5.3f',obj.laserPD.noise));
+      set(obj.handles.textLaserNoise ,'String',sprintf('%5.3f',100.*obj.laserPD.noise));
        %new      
       %noise in %
     end
@@ -308,7 +310,7 @@ classdef Method < handle
   function BackgroundReset(obj)
     obj.background.data = zeros(size(obj.background.data));
     obj.background.std = zeros(size(obj.background.std));
-    obj.laserPD.bkgd = zeros(size(obj.laserPD.bkgd));
+    obj.laserPD.bkgd = 945; %zeros(size(obj.laserPD.bkgd));
     obj.SaveBackground;
   end
     
