@@ -235,6 +235,8 @@ classdef (Sealed) Monochromator_JY < handle
         function UpdateWavelengthWavenumbers(obj)
           wl = obj.wavelength; %read from spec
           wn = 10^7/wl; %convert to cm-1
+          fprintf(1,'JY wavelength = %8.2f\n',wl);
+          fprintf(1,'   wavenumbers = %8.2f\n',wn);
           set(obj.handles.editWavelength,'String',sprintf('%8.2f',wl));
           set(obj.handles.editWavenumbers,'String',sprintf('%8.2f',wn));
         end

@@ -111,6 +111,7 @@ set(handles.textRunNumber, 'String', ['Run # ' num2str(FS.FileIndex)]);
 FPAS = Sampler_FPAS.getInstance;
 
 JY = Monochromator_JY.getInstance;
+pause(1);%somehow the JY needs time to actually be ready???
 JY.InitializeGui(handles.uipanelMonochromator);
 
 
