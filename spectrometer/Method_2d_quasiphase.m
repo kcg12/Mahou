@@ -21,9 +21,9 @@ properties (SetAccess = protected)
   ext;
   signal = struct('data',[],'std',[],'freq',[],'igram',[]);  
   
-  PARAMS = struct('nShots',[],'nScans',500,'start',-500, 'end', 5000, ...
+  PARAMS = struct('nShots',[],'nScans',10,'start',-500, 'end', 5000, ...
       'speed', 1700, 'bin_zero', 4000, 'bin_min', timeFsToBin(-500, 4000)+1, ...
-      'bin_max', timeFsToBin(5000, 4000)-20, 'acceleration', 66713,'t2',200 ); % 66713 = 2*fs equiv of 10mm
+      'bin_max', timeFsToBin(5000, 4000)-21, 'acceleration', 66713,'t2',200 ); % 66713 = 2*fs equiv of 10mm
   
   source = struct('sampler',[],'gate',[],'spect',[],'motors',[]);
   position;
@@ -359,9 +359,13 @@ methods (Access = protected)
   end
 
   function ProcessSampleBackAvg(obj)
-    mean_bkgd = squeeze(mean(obj.signal.data, 2));
-    obj.background.data = bsxfun(@plus, obj.background.data.*(obj.i_scan-1), mean_bkgd./obj.i_scan);
-    %check this might not be right
+    mean_bkgd = zeros(32,2);
+    mean_bkgd(:,1) = mean(obj.sample(obj.ind_array1,:),2);
+    mean_bkgd(:,2) = mean(obj.sample(obj.ind_array2,:),2);
+    
+    %squeeze(mean(obj.sorted, 2));
+    obj.background.data = bsxfun(@plus, obj.background.data.*(obj.i_scan-1), mean_bkgd)./obj.i_scan;
+    %check this might not be right @@@ THIS IS TOTAL BS
     obj.background.std = bsxfun(@plus, sqrt(obj.background.std.^2.*(obj.i_scan-1)), (mean_bkgd.^2)./obj.i_scan);
   end
   
