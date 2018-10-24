@@ -68,7 +68,7 @@ classdef FileSystem < handle
       
       files = dir(obj.DatePath);
       files = {files.name};
-      matches = regexp(files, '(\d+)\.mat', 'tokens');
+      matches = regexp(files, '(^\d+)\.mat', 'tokens');
       matches = matches(~cellfun('isempty',matches));
       
       if isempty(matches)
