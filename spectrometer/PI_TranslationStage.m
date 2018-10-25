@@ -134,7 +134,7 @@ classdef PI_TranslationStage < hgsetget
                     'MOV 1 $1\n',...
                     'WAC ONT? 1=1\n',...
                     'MOV 1 $2\n',...
-                    'WAC ONT 1=1\n']);
+                    'WAC ONT? 1=1\n']);
                 end
                 % reference move to negative limit
                 obj.sendPIMotorCommand('RON 1 1', 0);
@@ -230,6 +230,7 @@ classdef PI_TranslationStage < hgsetget
                         desired_pos1_mm,...
                         desired_pos2_mm),...
                 0);
+              obj.sendPIMotorCommand('MAC ERR?',1);
             end
         end
             
