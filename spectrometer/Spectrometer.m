@@ -111,9 +111,7 @@ set(handles.textRunNumber, 'String', ['Run # ' num2str(FS.FileIndex)]);
 FPAS = Sampler_FPAS.getInstance;
 
 JY = Monochromator_JY.getInstance;
-pause(1);%somehow the JY needs time to actually be ready???
 JY.InitializeGui(handles.uipanelMonochromator);
-
 
 %Default method on startup.
 method = Method_Show_Spectrum(FPAS,IO,JY,motors, handles,handles.pnlParameters,handles.axesMain,handles.axesRawData,handles.pnlNoise);

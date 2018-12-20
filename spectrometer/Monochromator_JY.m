@@ -5,12 +5,12 @@ classdef (Sealed) Monochromator_JY < handle
 %Monochromator_JY.getInstance, (instead of JY = Monochromator_JY).
     properties (SetAccess = private)
       mono; %the activexserver for JY
-      initialized=0;
       hPanel;     %handle to the panel to draw controls in
       hChildren;
       handles;
       nPixelsPerArray = 32;
       zeroPixel = 16; %which pixel of the detector at lambda = 0
+      Tag = 'Mono_JY';
     end
    properties %public properties
    end
@@ -22,6 +22,7 @@ classdef (Sealed) Monochromator_JY < handle
      wavenumbersAxis;
      slit;
      turret;
+     initialized;
      
    end
    
@@ -46,6 +47,17 @@ classdef (Sealed) Monochromator_JY < handle
     end
     
     methods %public
+      function obj = set.turret(obj, val)
+          obj.mono.MovetoTurret(val);
+          while obj.mono.IsBusy
+            drawnow
+          end
+          try
+            obj.UpdateTurret;
+          catch
+          end
+      end
+        
       function InitializeGui(obj,hPanel)
         obj.hPanel = hPanel; %has to come first
         obj.DrawControls; %has to come second
@@ -57,6 +69,8 @@ classdef (Sealed) Monochromator_JY < handle
       end
       
       function delete(obj)
+        obj.SaveDefaults;
+        obj.mono.MovetoTurret(0); % Do this or it won't work when you open it.
         obj.mono.CloseCommunications;
         delete(obj.mono);
         DeleteControls(obj); %remove gui elements
@@ -120,6 +134,10 @@ classdef (Sealed) Monochromator_JY < handle
           out = 1;
         end
       end
+      
+      function out = get.initialized(obj)
+        out = obj.mono.InitializeComplete;
+      end
     end
     
     methods (Access = protected) %private
@@ -132,10 +150,15 @@ classdef (Sealed) Monochromator_JY < handle
             obj.mono.Load; %
             obj.mono.OpenCommunications;
             obj.mono.Initialize;
-            obj.initialized = 1;
+            fprintf(1, '\nInitializing Monochromator ... ');
+            while ~obj.mono.InitializeComplete
+              pause(0.5);
+            end
+            fprintf(1, 'Done\n');
+            obj.ReadDefaults;
           catch E
             warning(E.identifier, 'Monochromator');
-            warning('Monochromator not found.  Enter simulation mode.');
+            warning('Error Initializing.  Enter simulation mode.');
           end
           
         end
@@ -271,7 +294,6 @@ classdef (Sealed) Monochromator_JY < handle
           %out = str2double(get(obj.handles.editWavelength,'String'));
           out = get(get(obj.handles.bgTurret,'SelectedObject'),'UserData');
         end
-
     end
     methods (Access = public)
         function editWavelength_Callback(obj,hObject, eventdata)
@@ -306,14 +328,21 @@ classdef (Sealed) Monochromator_JY < handle
           end
           obj.UpdateSlit;
         end
+        
         function bgTurret_Callback(obj,hObject, eventdata)
-          val = ReadTurret(obj);
-%          fprintf(1,'callback turret is %i\n',val);
-          obj.mono.MovetoTurret(val);
-          while obj.mono.IsBusy
-            drawnow
-          end
-          obj.UpdateTurret; %shouldn't change anything...
+          obj.turret = ReadTurret(obj);
+        end
+        
+        function ReadDefaults(obj)
+          name = 'turret';
+          d = Defaults(obj);
+          d.LoadDefaults(name);
+        end
+        
+        function SaveDefaults(obj)
+          name = 'turret';
+          d = Defaults(obj);
+          d.SaveDefaults(name);
         end
     end
 end
