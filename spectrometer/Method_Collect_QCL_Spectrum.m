@@ -141,9 +141,9 @@ classdef Method_Collect_QCL_Spectrum < Method
             obj.signal.data = zeros(obj.nSignals,nfreq);
             obj.signal.std = zeros(obj.nSignals,nfreq);
             obj.LoadBackground;
-            if isempty(obj.background.data) || any(size(obj.background.data)~=size(obj.signal.data))
-                obj.background.data = zeros(obj.nSignals,nfreq);
-                obj.background.std = zeros(obj.nSignals,nfreq);
+            if isempty(obj.background.data) || any(size(obj.background.data)~=[obj.nSignals 1])
+                obj.background.data = zeros(obj.nSignals,1);
+                obj.background.std = zeros(obj.nSignals,1);
             end
             obj.result.data = zeros(1,nfreq);
             obj.result.noise = zeros(1,nfreq);
@@ -381,8 +381,8 @@ classdef Method_Collect_QCL_Spectrum < Method
         function ProcessSampleSort(obj)
             %the easy thing
             
-            obj.sorted(:,:,1) = obj.sample(obj.ind_array1,1:obj.nShotsSorted);
-            obj.sorted(:,:,2) = obj.sample(obj.ind_array2,1:obj.nShotsSorted);
+            obj.sorted(obj.ind_freq,:,1) = obj.sample(obj.ind_array1,1:obj.nShotsSorted);
+            obj.sorted(obj.ind_freq,:,2) = obj.sample(obj.ind_array2,1:obj.nShotsSorted);
             
             %obj.aux.igram = obj.sample(obj.ind_igram,:);
             %obj.aux.hene_x = obj.sample(obj.ind_hene_x,:);
@@ -405,15 +405,15 @@ classdef Method_Collect_QCL_Spectrum < Method
         end
         
         function ProcessSampleAvg(obj)
-            obj.signal.data = squeeze(mean(obj.sorted,2))';
-            obj.signal.std = squeeze(std(obj.sorted,0,2))';
+            obj.signal.data(:,obj.ind_freq) = squeeze(mean(obj.sorted(obj.ind_freq,:,:),2))';
+            obj.signal.std(:,obj.ind_freq) = squeeze(std(obj.sorted(obj.ind_freq,:,:),0,2))';
             obj.ext = mean(obj.ext,2);
         end
         
         function ProcessSampleBackAvg(obj)
-            obj.background.data = (obj.background.data.*(obj.i_scan-1) + obj.signal.data)./obj.i_scan;
+            obj.background.data(:,1) = (obj.background.data(:,1).*(obj.i_scan-1) + obj.signal.data(:,1))./obj.i_scan;
             %check this might not be right
-            obj.background.std = sqrt((obj.background.std.^2.*(obj.i_scan-1) + obj.signal.std.^2)./obj.i_scan);
+            obj.background.std(:,1) = sqrt((obj.background.std(:,1).^2.*(obj.i_scan-1) + obj.signal.std(:,1).^2)./obj.i_scan);
         end
         
         function ProcessSampleSubtBack(obj)
@@ -434,7 +434,7 @@ classdef Method_Collect_QCL_Spectrum < Method
             %So we first transpose the background from (nSignals x nPixels) to
             %(nPixels x nSignals). Reshape expands that to be (nPixels x 1 x
             %nSignals).
-            bg = reshape(obj.background.data',[obj.nPixelsPerArray 1 obj.nSignals]);
+            bg = reshape(obj.background.data',[1 1 obj.nSignals]);
             
             %now bsxfun does the subtraction
             obj.sorted = bsxfun(@minus,obj.sorted,bg);
@@ -443,10 +443,12 @@ classdef Method_Collect_QCL_Spectrum < Method
         function ProcessSampleResult(obj)
             %calculate the effective delta absorption (though we are plotting the
             %signals directly)
-            obj.result.data = 1000.*log10(obj.signal.data(1,:)./obj.signal.data(2,:));
-            sampleShots = obj.sample(obj.ind_sig,:);
-            refShots = obj.sample(obj.ind_ref,:);
-            obj.abs(obj.ind_freq) = mean(-log10(sampleShots./refShots));
+            obj.result.data = -log10(obj.signal.data(1,:)./obj.signal.data(2,:));
+            %sampleShots = obj.sample(obj.ind_sig,:);
+            %refShots = obj.sample(obj.ind_ref,:);
+            %obj.abs(obj.ind_freq) = mean(-log10(sampleShots./refShots));
+            obj.abs = obj.result.data;
+            
         end
         
         function ProcessSampleNoise(obj)
@@ -468,6 +470,59 @@ classdef Method_Collect_QCL_Spectrum < Method
             out = obj.result.noise;
         end
         
+        function InitializeRawDataPlot(obj)
+            nfreq = length(obj.freq);
+            
+            n_plots = size(obj.Raw_data,1);
+            hold(obj.hRawDataAxes, 'off');
+            obj.hPlotRaw = zeros(1,n_plots);
+            for i = 1:n_plots
+                % The Raw Data plot is the same for every method.
+                obj.hPlotRaw(i) = plot(obj.hRawDataAxes, 1:nfreq, obj.Raw_data(i,:));
+                set(obj.hPlotRaw(i),'Color',[mod(1-(i-1)*0.1,1) 0 0]);
+                set(obj.hPlotRaw(i),'YDataSource',['obj.Raw_data(',num2str(i),',:)']);
+                hold(obj.hRawDataAxes, 'on');
+            end
+            
+            %plot noise
+            i=i+1;
+            obj.hPlotRaw(i) = plot(obj.hRawDataAxes, 1:nfreq, obj.Noise.*obj.noiseGain, 'b');
+            set(obj.hPlotRaw(i),'YDataSource','obj.Noise.*obj.noiseGain');
+            set(obj.hRawDataAxes,'XLim',[1 nfreq],'Ylim',[0 2^16*1.05]);
+
+        end
+        %acquire a background (might need to be public)
+        function BackgroundAcquire(obj)
+            obj.ScanIsRunning = true;
+            obj.ScanIsStopping = false;
+            obj.BackgroundReset;
+            obj.ReadParameters;
+            %obj.InitializeTask;
+            obj.ScanInitialize;
+            obj.ind_freq = 1;
+            
+            for ni_scan = 1            % @@@ is there some reason we can't assign obj.i_scan directly?
+                obj.i_scan = ni_scan;
+                set(obj.handles.textScanNumber,'String',sprintf('Scan # %i',obj.i_scan));
+                drawnow;
+                
+                obj.source.sampler.Start;
+                obj.source.gate.OpenClockGate;
+                obj.sample = obj.source.sampler.Read;
+                obj.source.gate.CloseClockGate;
+                
+                obj.ProcessSampleSort;
+                obj.ProcessSampleAvg;
+                obj.ProcessSampleBackAvg;
+                
+                obj.ProcessLaserBackAvg;
+                
+            end
+            obj.source.sampler.ClearTask;
+            obj.SaveBackground;
+            obj.ScanIsRunning = false;
+            
+        end
         function delete(obj)
             DeleteParameters(obj);
         end 
