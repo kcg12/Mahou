@@ -2,7 +2,7 @@ classdef Method_Collect_QCL_Spectrum < Method
     %inherits from Method superclass
     
     properties (Hidden,SetAccess = immutable)
-        Tag = 'Method2Signals32Pixels';
+        Tag = 'Method2Signals2Pixels_65_66';
     end
     
     properties (SetAccess = protected)
@@ -37,14 +37,14 @@ classdef Method_Collect_QCL_Spectrum < Method
         abs;
         
         nSignals = 2;
-        nPixels = 64;
+        nPixels = 2;
         nExtInputs = 16;
         nChan = 80;
-        ind_array1 = 1:32;
-        ind_array2 = 33:64;
-        ind_igram = 65;
-        ind_hene_x = 79;
-        ind_hene_y = 80
+        ind_array1 = 66;
+        ind_array2 = 65;
+        %ind_igram = 65;
+        %ind_hene_x = 79;
+        %ind_hene_y = 80
         ind_ext = 65:80;
         
         ind_sig = 66;
@@ -99,8 +99,8 @@ classdef Method_Collect_QCL_Spectrum < Method
             obj.hDiagnosticsPanel = hDiagnosticsPanel;
             obj.handles = handles;
             
-            obj.freq = obj.PARAMS.initFreq:obj.PARAMS.dFreq:obj.PARAMS.finalFreq;
-            obj.abs = zeros(1, length(obj.freq));
+            %obj.freq = obj.PARAMS.initFreq:obj.PARAMS.dFreq:obj.PARAMS.finalFreq;
+            %obj.abs = zeros(1, length(obj.freq));
             
             if isempty(QCLLaser) || ~isvalid(QCLLaser)
                 set(obj.handles.pumLaserSource, 'Value', 2)
@@ -132,23 +132,26 @@ classdef Method_Collect_QCL_Spectrum < Method
         %beginning of a scan
         function InitializeData(obj)
             
+            nfreq = length(obj.freq);
+            obj.abs = zeros(1, nfreq);
+            
             obj.sample = zeros(obj.nChan,obj.PARAMS.nShots);
             obj.nShotsSorted = obj.nArrays*obj.PARAMS.nShots/obj.nSignals;
-            obj.sorted = zeros(obj.nPixelsPerArray,obj.nShotsSorted,obj.nSignals);
-            obj.signal.data = zeros(obj.nSignals,obj.nPixelsPerArray);
-            obj.signal.std = zeros(obj.nSignals,obj.nPixelsPerArray);
+            obj.sorted = zeros(nfreq,obj.nShotsSorted,obj.nSignals);
+            obj.signal.data = zeros(obj.nSignals,nfreq);
+            obj.signal.std = zeros(obj.nSignals,nfreq);
             obj.LoadBackground;
             if isempty(obj.background.data) || any(size(obj.background.data)~=size(obj.signal.data))
-                obj.background.data = zeros(obj.nSignals,obj.nPixelsPerArray);
-                obj.background.std = zeros(obj.nSignals,obj.nPixelsPerArray);
+                obj.background.data = zeros(obj.nSignals,nfreq);
+                obj.background.std = zeros(obj.nSignals,nfreq);
             end
-            obj.result.data = zeros(1,obj.nPixelsPerArray);
-            obj.result.noise = zeros(1,obj.nPixelsPerArray);
+            obj.result.data = zeros(1,nfreq);
+            obj.result.noise = zeros(1,nfreq);
             
             obj.ext = zeros(obj.nExtInputs,1);
-            obj.aux.igram = zeros(1,obj.PARAMS.nShots);
-            obj.aux.hene_x = zeros(1,obj.PARAMS.nShots);
-            obj.aux.hene_y = zeros(1,obj.PARAMS.nShots);
+            %obj.aux.igram = zeros(1,obj.PARAMS.nShots);
+            %obj.aux.hene_x = zeros(1,obj.PARAMS.nShots);
+            %obj.aux.hene_y = zeros(1,obj.PARAMS.nShots);
         end
         
         function InitializeFreqAxis(obj)
@@ -228,7 +231,6 @@ classdef Method_Collect_QCL_Spectrum < Method
             
             InitializeFreqAxis(obj);
             
-            obj.abs = zeros(1, length(obj.freq));
             
             InitializeData(obj);
             
@@ -382,9 +384,9 @@ classdef Method_Collect_QCL_Spectrum < Method
             obj.sorted(:,:,1) = obj.sample(obj.ind_array1,1:obj.nShotsSorted);
             obj.sorted(:,:,2) = obj.sample(obj.ind_array2,1:obj.nShotsSorted);
             
-            obj.aux.igram = obj.sample(obj.ind_igram,:);
-            obj.aux.hene_x = obj.sample(obj.ind_hene_x,:);
-            obj.aux.hene_y = obj.sample(obj.ind_hene_y,:);
+            %obj.aux.igram = obj.sample(obj.ind_igram,:);
+            %obj.aux.hene_x = obj.sample(obj.ind_hene_x,:);
+            %obj.aux.hene_y = obj.sample(obj.ind_hene_y,:);
             obj.ext = obj.sample(obj.ind_ext,:);
             
             %unfinished:
