@@ -4,6 +4,14 @@ classdef FileSystem < handle
     DateString;
     DatePath;
     FileIndex;
+    dataDirLocal='C:/data';
+    dataDirRemote='c:/Users/INFRARED/Box/data/2dir_data';
+    eln;
+  end
+  properties
+    flagSaveLocal=true;
+    flagSaveRemote=false;
+    flagSaveELN=false;
   end
   
   %hold the instance as a persistent variable
@@ -21,19 +29,63 @@ classdef FileSystem < handle
 
    function obj = FileSystem
       obj.updateParameters;
+      try
+          obj.eln = labarchivesCallObj('page',obj.DateString);
+      catch
+          obj.flagSaveELN=false;
+      end
+          
     end
   end
   
   methods (Access = public)
     
     function Save(obj, data)
-      path = sprintf('%s/%3.3d.mat', obj.DatePath, obj.FileIndex);
-      save(path, 'data');
-      obj.updateParameters;
+        if obj.flagSaveLocal
+            obj.SaveLocal(data);
+        end
+        if obj.flagSaveRemote
+            obj.SaveRemote(data);
+        end
+        if obj.flagSaveELN
+            obj.SaveELN(data);
+        end
+        
+        %after saving update the file directory and file count
+        %this has the side effect of moving into a new directory after the
+        %first save after midnight (sorry)
+        obj.updateParameters;
+    end
+    
+    function SaveLocal(obj,data)
+        file_name_and_path = sprintf('%s/%3.3d.mat', obj.DatePath, obj.FileIndex);
+        save(file_name_and_path, 'data');
+    end
+    
+    function SaveRemote(obj,data)
+        file_name_and_path = sprintf('%s/%s/%3.3d.mat',...
+            obj.dataDirRemote, obj.DateString, obj.FileIndex);
+        dirname =  sprintf('%s/%s',obj.dataDirRemote, obj.DateString);
+        if ~exist(dirname, 'file')
+            mkdir(dirname);
+        end
+        
+        save(file_name_and_path, 'data');
+    end
+    
+    function SaveELN(obj,data)
+        %make sure we are on the right page. If not then udate the page
+        if ~strcmp(obj.DateString,obj.eln.page_name)
+            %if they are not the same, update
+            obj.eln = labarchivesCallObj('page',obj.DateString);
+        end
+            
+        filename = sprintf('%s/%3.3d.mat', obj.DatePath, obj.FileIndex);
+        obj.eln=obj.eln.addAttachment(filename);
     end
     
     function SaveTemp(obj, data, counter)
-      path = sprintf('C:/data/%s/temp/%3.3d-%4.4d.mat', obj.DateString, obj.FileIndex, counter);
+      path = sprintf([obj.dataDirLocal,'/%s/temp/%3.3d-%4.4d.mat'], obj.DateString, obj.FileIndex, counter);
       save(path, 'data');
     end
     
@@ -48,14 +100,14 @@ classdef FileSystem < handle
       
       % Verify that root data directory structure exists.
       
-      if ~exist('C:/data', 'file')
-        mkdir('C:/data')
+      if ~exist(obj.dataDirLocal, 'file')
+        mkdir(obj.dataDirLocal)
       end
       
       % Verify that folder for today exists
 
       obj.DateString = datestr(now, 'yyyy-mm-dd');
-      obj.DatePath = ['C:/data/' obj.DateString];
+      obj.DatePath = [obj.dataDirLocal '/' obj.DateString];
       if ~exist(obj.DatePath, 'file')
         mkdir(obj.DatePath);
       end
