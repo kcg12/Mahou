@@ -90,7 +90,7 @@ Constants;
 
 IO = [];
 try
-  IO = IO_Interface;
+  IO = IO_Interface_64;
   IO.CloseClockGate();
 catch
   warning('SGRLAB:SimulationMode','IO not enabled');

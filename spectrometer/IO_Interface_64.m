@@ -17,7 +17,9 @@ classdef IO_Interface_64 < handle
                 warning('Spectrometer:DIO', 'Digital I/O module not found.  Entering simulation mode');
             end
             if obj.active
+                warning('off', 'daq:Session:onDemandOnlyChannelsAdded');
                 addDigitalChannel(obj.dio,'Dev2','Port1/Line0','OutputOnly');
+                warning('on', 'daq:Session:onDemandOnlyChannelsAdded')
 %                 addline(obj.dio, 7, 1, 'out');      % Port 1 bit 7
             end
         end

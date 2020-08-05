@@ -78,12 +78,16 @@ classdef (Sealed) Sampler_FPAS < handle
             %% load library
             obj.lib = 'myni';	% library alias
             if ~libisloaded(obj.lib)
+                warning('off', 'MATLAB:loadlibrary:TypeNotFound');
+                warning('off', 'MATLAB:loadlibrary:parsewarnings');
                 disp('Matlab: Load nicaiu.dll')
                 loadlibrary('nicaiu.dll','C:\Program Files (x86)\National Instruments\NI-DAQ\DAQmx ANSI C Dev\include\nidaqmx.h','alias',obj.lib);
                 %if you do NOT have nicaiu.dll and nidaqmx.h
                 %in your Matlab path,add full pathnames or copy the files.
                 %libfunctions(FPAS.lib,'-full') % use this to show the... 
                 %libfunctionsview(FPAS.lib)     % included function
+                warning('on', 'MATLAB:loadlibrary:TypeNotFound');
+                warning('on', 'MATLAB:loadlibrary:parsewarnings');
             end
             %disp('Matlab: nicaiu.dll loaded')
 
@@ -256,8 +260,8 @@ classdef (Sealed) Sampler_FPAS < handle
         end
         
         function CloseCOMPort(obj)
-          fclose(obj.COMPort);
-          delete(obj.COMPort);
+%           fclose(obj.COMPort);
+%           delete(obj.COMPort);
           obj.COMPort = [];
         end
         
@@ -428,6 +432,7 @@ classdef (Sealed) Sampler_FPAS < handle
           end
           
           CloseCOMPort(obj);
+          unloadlibrary(obj.lib);
         end
     end
     

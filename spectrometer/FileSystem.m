@@ -10,8 +10,8 @@ classdef FileSystem < handle
   end
   properties
     flagSaveLocal=true;
-    flagSaveRemote=false;
-    flagSaveELN=false;
+    flagSaveRemote=true;
+    flagSaveELN=true;
   end
   
   %hold the instance as a persistent variable
