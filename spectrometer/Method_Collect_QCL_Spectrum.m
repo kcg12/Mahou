@@ -1,4 +1,4 @@
-classdef Method_Collect_QCL_Spectrum < Method
+ classdef Method_Collect_QCL_Spectrum < Method
     %inherits from Method superclass
     
     properties (Hidden,SetAccess = immutable)
@@ -54,7 +54,6 @@ classdef Method_Collect_QCL_Spectrum < Method
         
         nShotsSorted;
         i_scan;
-        
     end
     
     properties (Dependent, SetAccess = protected)
@@ -98,6 +97,7 @@ classdef Method_Collect_QCL_Spectrum < Method
             obj.hRawDataAxes = hRawDataAxes;
             obj.hDiagnosticsPanel = hDiagnosticsPanel;
             obj.handles = handles;
+            obj.saveData=true;
             
             %obj.freq = obj.PARAMS.initFreq:obj.PARAMS.dFreq:obj.PARAMS.finalFreq;
             %obj.abs = zeros(1, length(obj.freq));
@@ -156,6 +156,7 @@ classdef Method_Collect_QCL_Spectrum < Method
         
         function InitializeFreqAxis(obj)
             obj.freq = obj.PARAMS.initFreq:obj.PARAMS.dFreq:obj.PARAMS.finalFreq;
+            obj.result.freq = obj.freq;
 %             obj.abs = zeros(1, length(obj.freq));
             set(obj.hMainAxes,'Xlim',[obj.freq(1) obj.freq(end)]);
         end
@@ -218,6 +219,15 @@ classdef Method_Collect_QCL_Spectrum < Method
                 pause(0.25)
             end
             
+            ReadParameters(obj);
+            
+            InitializeFreqAxis(obj);
+            InitializeData(obj);
+            InitializeMainPlot(obj);
+            InitializeRawDataPlot(obj);
+            InitializeTask(obj);
+            %just leave motors where they are
+            
             obj.source.laser.tuneTo(obj.freq(1), 'cm-1', obj.source.laser.whichQCL(obj.freq(1), 'cm-1'));
             while ~obj.source.laser.isTuned
                 pause(0.25)
@@ -227,15 +237,9 @@ classdef Method_Collect_QCL_Spectrum < Method
                 obj.source.laser.turnEmissionOn
             end
             
-            ReadParameters(obj);
-            
-            InitializeFreqAxis(obj);
-            
-            
-            InitializeData(obj);
-            
-            InitializeTask(obj);
-            %just leave motors where they are
+            while ~obj.source.laser.isEmitting
+                pause(0.25)
+            end
         end
         
         %start first sample. This code is executed before the scan loop starts
@@ -258,6 +262,9 @@ classdef Method_Collect_QCL_Spectrum < Method
                     pause(0.25)
                 end
                 
+                % break
+                if strcmpi(obj.handles.pbGo.String,'Stopping'),return,end
+                
                 %no need to move motors
                 
                 %start the data acquisition task
@@ -271,7 +278,7 @@ classdef Method_Collect_QCL_Spectrum < Method
                 %obj.AverageSample(obj);
                 
                 %update freq axis if it changed
-                InitializeFreqAxis(obj);
+                %InitializeFreqAxis(obj);
                 
                 %plot results
                 RefreshPlots(obj,obj.hPlotMain)
@@ -312,7 +319,10 @@ classdef Method_Collect_QCL_Spectrum < Method
                 while ~obj.source.laser.isTuned
                     pause(0.25)
                 end
-                            
+                
+                % break
+                if strcmpi(obj.handles.pbGo.String,'Stopping'),return,end
+                
                 %no need to move motors
                 
                 %start the data acquisition task
@@ -326,7 +336,7 @@ classdef Method_Collect_QCL_Spectrum < Method
                 %obj.AverageSample(obj);
                 
                 %update freq axis if it changed
-                InitializeFreqAxis(obj);
+                %InitializeFreqAxis(obj);
                 
                 %plot results
                 RefreshPlots(obj,obj.hPlotMain)
@@ -368,13 +378,14 @@ classdef Method_Collect_QCL_Spectrum < Method
         
         %move the motors back to their zero positions. Clear the ADC tasks.
         function ScanCleanup(obj)
-            
+            global isManualTuneEnabled
             obj.source.gate.CloseClockGate;
             obj.source.sampler.ClearTask;
             
             obj.source.laser.turnEmissionOff;
             obj.source.laser.cancelManualTune;
-            %no need to move motors back to zero
+            
+            isManualTuneEnabled = false;
                         
         end
         
@@ -443,11 +454,14 @@ classdef Method_Collect_QCL_Spectrum < Method
         function ProcessSampleResult(obj)
             %calculate the effective delta absorption (though we are plotting the
             %signals directly)
+            obj.result.signal = obj.signal.data(1,:);
+            obj.result.ref = obj.signal.data(2,:);
             obj.result.data = -log10(obj.signal.data(1,:)./obj.signal.data(2,:));
             %sampleShots = obj.sample(obj.ind_sig,:);
             %refShots = obj.sample(obj.ind_ref,:);
             %obj.abs(obj.ind_freq) = mean(-log10(sampleShots./refShots));
-            obj.abs = obj.result.data;
+            obj.result.abs = obj.result.data;
+            obj.abs = real(obj.result.data);
             
         end
         
@@ -471,24 +485,41 @@ classdef Method_Collect_QCL_Spectrum < Method
         end
         
         function InitializeRawDataPlot(obj)
-            nfreq = length(obj.freq);
+            
+%             nShots = obj.PARAMS.nShots;
+%             hold(obj.hRawDataAxes, 'all');
+%             obj.hPlotRaw = zeros(1,2);
+%             
+%             obj.hPlotRaw(1) = plot(obj.hRawDataAxes, 1:nShots, zeros(1,nShots));
+%             set(obj.hPlotRaw(1),'Color',[mod(1-(1-1)*0.1,1) 0 0]);
+%             set(obj.hPlotRaw(1),'YDataSource','obj.sample(obj.ind_sig,:)');
+%             hold(obj.hRawDataAxes, 'on');
+%             
+%             obj.hPlotRaw(2) = plot(obj.hRawDataAxes, 1:nShots, zeros(1, nShots));
+%             set(obj.hPlotRaw(2),'Color',[mod(1-(2-1)*0.1,1) 0 0]);
+%             set(obj.hPlotRaw(2),'YDataSource','obj.sample(obj.ind_ref,:)');
+%             hold(obj.hRawDataAxes, 'on');
+%             
+%             set(obj.hRawDataAxes,'XLim',[1 nShots],'Ylim',[0 2^16*1.05]);
+            
+%             nfreq = length(obj.freq);
             
             n_plots = size(obj.Raw_data,1);
             hold(obj.hRawDataAxes, 'off');
             obj.hPlotRaw = zeros(1,n_plots);
             for i = 1:n_plots
                 % The Raw Data plot is the same for every method.
-                obj.hPlotRaw(i) = plot(obj.hRawDataAxes, 1:nfreq, obj.Raw_data(i,:));
+                obj.hPlotRaw(i) = plot(obj.hRawDataAxes, obj.freq, ones(1,length(obj.freq)));
                 set(obj.hPlotRaw(i),'Color',[mod(1-(i-1)*0.1,1) 0 0]);
                 set(obj.hPlotRaw(i),'YDataSource',['obj.Raw_data(',num2str(i),',:)']);
                 hold(obj.hRawDataAxes, 'on');
             end
             
-            %plot noise
+            % plot noise
             i=i+1;
-            obj.hPlotRaw(i) = plot(obj.hRawDataAxes, 1:nfreq, obj.Noise.*obj.noiseGain, 'b');
+            obj.hPlotRaw(i) = plot(obj.hRawDataAxes, obj.freq, ones(1,length(obj.freq)), 'b');
             set(obj.hPlotRaw(i),'YDataSource','obj.Noise.*obj.noiseGain');
-            set(obj.hRawDataAxes,'XLim',[1 nfreq],'Ylim',[0 2^16*1.05]);
+            set(obj.hRawDataAxes,'XLim',[obj.freq(1) obj.freq(end)],'Ylim',[0 2^16*1.05]);
 
         end
         %acquire a background (might need to be public)
