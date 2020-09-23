@@ -127,9 +127,10 @@ classdef (Sealed) Monochromator_JY < handle
           
           %% START HERE
           try
-              error('This is a bullshit activeX command.')
+%             error('This is a bullshit activeX command.')
+            
             obj.mono = actxserver('JYMono.monochromator');
-            obj.mono.UniqueID = 'Mono1'; %this cost me $800...
+            obj.mono.UniqueID = 'Mono2'; %this cost me $800...
             obj.mono.Load; %
             obj.mono.OpenCommunications;
             obj.mono.Initialize;

@@ -76,6 +76,8 @@ handles.output = hObject;
 splash = SplashScreen('Garrett-Roe 2D-IR Spectrometer', 'splash_screen.jpg');
 splash.addText(30,50, 'Garrett-Roe 2D-IR Spectrometer', 'FontSize', 30, 'Color', [0 0 0.6] )
 
+matlabBitVersion = computer('arch');
+
 %add menu item
 hmenu = uimenu(gcf,'Label','MCT','Tag','menuMCT');
 hmenuitems(1)  = uimenu(hmenu,'Label','Set gain','Callback',{@(src,eventdata) menuMCT_callback(src,eventdata)});
@@ -90,15 +92,20 @@ Constants;
 
 IO = [];
 try
-  IO = IO_Interface;
-  IO.CloseClockGate();
+    if strcmp(matlabBitVersion, 'win64')
+        IO = IO_Interface_64;
+        IO.CloseClockGate();
+    else
+        IO = IO_Interface;
+        IO.CloseClockGate();
+    end
 catch
   warning('SGRLAB:SimulationMode','IO not enabled');
 end
 
 try
-  Interferometer_Stage = PI_TranslationStage('COM6', fsToMm2Pass,'backward', 'Motor1');
-  Population_Stage = PI_TranslationStage('COM4', fsToMm2Pass, 'forward', 'Motor2');
+  Interferometer_Stage = PI_TranslationStage('COM4', fsToMm2Pass,'backward', 'Motor1');
+  Population_Stage = PI_TranslationStage('COM3', fsToMm2Pass, 'forward', 'Motor2');
   motors = { Interferometer_Stage, Population_Stage };
 catch
   warning('SGRLAB:SimulationMode','PI stages not enabled');
