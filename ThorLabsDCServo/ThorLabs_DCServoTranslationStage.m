@@ -39,7 +39,7 @@ classdef ThorLabs_DCServoTranslationStage < handle
     properties (Hidden)
        % These are properties within the .NET environment. 
        deviceNET;                   % Device object within .NET
-       motorSettingsNET;            % motorSettings within .NET
+       motorSettingsNET;            % motorSettings wthin .NET
        currentDeviceSettingsNET;    % currentDeviceSetings within .NET
        deviceInfoNET;               % deviceInfo within .NET
     end
@@ -97,6 +97,7 @@ classdef ThorLabs_DCServoTranslationStage < handle
                 MotDir = enumHandle.GetEnumValues().Get(1); % 1 stands for "Forwards"
             end 
             obj.currentDeviceSettingsNET.Rotation.RotationDirection=MotDir;   % Set motor direction to be 'forwards'
+            obj.home();
         end
         
         function delete(obj) % Disconnect device     
@@ -126,7 +127,7 @@ classdef ThorLabs_DCServoTranslationStage < handle
             obj.deviceNET.Wait(obj.TIMEOUTMOVE);                  % Wait for move to finish
         end
         
-        function movetTo(obj,position)     % Move to absolute position
+        function moveTo(obj,position)     % Move to absolute position
             try
                 workDone=obj.deviceNET.InitializeWaitHandler(); % Initialise Waithandler for timeout
                 obj.deviceNET.MoveTo(position, workDone);       % Move devce to position via .NET interface
