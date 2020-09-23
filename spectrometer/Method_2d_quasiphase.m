@@ -197,8 +197,10 @@ methods (Access = protected)
   function InitializeMainPlot(obj)
     n_contours = 12;
     map = myMapRGB2(n_contours);
-    obj.hPlotMain = contourf(obj.signal.data, n_contours);
-    colormap(obj.hMainAxes, map)      
+    warning('off','MATLAB:contour:ConstantData');
+    obj.hPlotMain = contourf(obj.signal.data(:,:,1), n_contours);
+    colormap(obj.hMainAxes, map)
+    warning('on','MATLAB:contour:ConstantData');
 %    set(obj.hPlot,'DataSource', 'method.PlotData(1)');
   end
   
