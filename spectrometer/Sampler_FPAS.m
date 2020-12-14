@@ -40,9 +40,10 @@ classdef (Sealed) Sampler_FPAS < handle
     methods (Access = private)
 
       function obj = Sampler_FPAS
-
+        warning('off', 'MATLAB:namelengthmaxexceeded');
         LoadNIConstants;
         Initialize(obj);
+        warning('on', 'MATLAB:namelengthmaxexceeded');
       end
       
     end
