@@ -21,8 +21,8 @@ properties (SetAccess = protected)
   ext;
   signal = struct('data',[],'std',[],'freq',[],'igram',[]);  
   
-  PARAMS = struct('nShots',[],'nScans',10,'start',-500, 'end', 5000, ...
-      'speed', 1700, 'bin_zero', 4000, 'bin_min', timeFsToBin(-500, 4000)+1, ...
+  PARAMS = struct('nShots',[],'nScans',2,'start',-500, 'end', 5000, ...
+      'speed', 800, 'bin_zero', 4000, 'bin_min', timeFsToBin(-500, 4000)+1, ...
       'bin_max', timeFsToBin(5000, 4000)-21, 'acceleration', 66713,'t2',200 ); % 66713 = 2*fs equiv of 10mm
   
   source = struct('sampler',[],'gate',[],'spect',[],'motors',[]);
@@ -195,12 +195,19 @@ methods (Access = protected)
   
   %set up the plot for the main output. Called by the class constructor.
   function InitializeMainPlot(obj)
-    n_contours = 12;
-    map = myMapRGB2(n_contours);
-    warning('off','MATLAB:contour:ConstantData');
-    obj.hPlotMain = contourf(obj.signal.data(:,:,1), n_contours);
-    colormap(obj.hMainAxes, map)
-    warning('on','MATLAB:contour:ConstantData');
+      
+      obj.hPlotMain = zeros(1,obj.nSignals);
+      n_contours = 12;
+      map = myMapRGB2(n_contours);
+      set(obj.hMainAxes,'Nextplot','replacechildren');
+      warning('off','MATLAB:contour:ConstantData');
+      [~, obj.hPlotMain] = contourf(obj.signal.data(:,:,1)', n_contours, 'Parent', obj.hMainAxes);
+      colormap(obj.hMainAxes, map)
+      
+      set(obj.hPlotMain,'XDataSource','obj.freq',...
+          'YDataSource', 'obj.result.time',...
+          'ZDataSource',"obj.signal.data(:,:,1)'");
+      warning('on','MATLAB:contour:ConstantData');
 %    set(obj.hPlot,'DataSource', 'method.PlotData(1)');
   end
   
@@ -330,7 +337,7 @@ methods (Access = protected)
       set(obj.handles.(str),'String','moving...');
       pos = obj.source.motors{i_mot}.MoveTo(new_pos,6000,0,0);
       set(obj.handles.(str),'String',num2str(pos));
-    end    
+    end  
     
   end
   
