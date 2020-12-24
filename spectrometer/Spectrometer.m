@@ -22,7 +22,7 @@ function varargout = Spectrometer(varargin)
 
 % Edit the above text to modify the response to help Spectrometer
 
-% Last Modified by GUIDE v2.5 10-Dec-2015 14:29:35
+% Last Modified by GUIDE v2.5 08-Apr-2019 16:44:57
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -76,6 +76,8 @@ handles.output = hObject;
 splash = SplashScreen('Garrett-Roe 2D-IR Spectrometer', 'splash_screen.jpg');
 splash.addText(30,50, 'Garrett-Roe 2D-IR Spectrometer', 'FontSize', 30, 'Color', [0 0 0.6] )
 
+matlabBitVersion = computer('arch');
+
 %add menu item
 hmenu = uimenu(gcf,'Label','MCT','Tag','menuMCT');
 hmenuitems(1)  = uimenu(hmenu,'Label','Set gain','Callback',{@(src,eventdata) menuMCT_callback(src,eventdata)});
@@ -90,15 +92,20 @@ Constants;
 
 IO = [];
 try
-  IO = IO_Interface;
-  IO.CloseClockGate();
+    if strcmp(matlabBitVersion, 'win64')
+        IO = IO_Interface_64;
+        IO.CloseClockGate();
+    else
+        IO = IO_Interface;
+        IO.CloseClockGate();
+    end
 catch
   warning('SGRLAB:SimulationMode','IO not enabled');
 end
 
 try
-  Interferometer_Stage = PI_TranslationStage('COM6', fsToMm2Pass,'backward', 'Motor1');
-  Population_Stage = PI_TranslationStage('COM4', fsToMm2Pass, 'forward', 'Motor2');
+  Interferometer_Stage = PI_TranslationStage('COM4', fsToMm2Pass,'backward', 'Motor1');
+  Population_Stage = PI_TranslationStage('COM3', fsToMm2Pass, 'forward', 'Motor2');
   motors = { Interferometer_Stage, Population_Stage };
 catch
   warning('SGRLAB:SimulationMode','PI stages not enabled');
@@ -148,6 +155,15 @@ if method.ScanIsRunning == true
     return;
 end
 
+val = get(handles.popupMethods,'Value');
+list = get(handles.popupMethods,'String');
+str = list{val}; %select contents of desired cell
+str_method = str(1:end-2); %chop off the ".m"
+
+if strcmp(str_method, 'Method_Collect_QCL_Spectrum')
+    set(hObject.Parent, 'WindowStyle', 'modal');
+end
+
 set(handles.pbGo, 'String', 'Stop', 'BackgroundColor', [1.0 0.0 0.0]);
 
 try
@@ -167,6 +183,9 @@ FS = FileSystem.getInstance;
 set(handles.pbGo, 'String', 'Go', 'BackgroundColor', 'green');
 set(handles.textDate, 'String', FS.DateString);
 set(handles.textRunNumber, 'String', ['Run # ' num2str(FS.FileIndex)]);
+
+set(hObject.Parent, 'WindowStyle', 'normal');
+
 
 % --------------------------------------------------------------------
 function FileMenu_Callback(hObject, eventdata, handles)
@@ -518,7 +537,7 @@ set(H, 'String', num2str(new_pos));
 
 function cleanup(src,event)
 %for exit
-global IO FPAS JY method motors;
+global IO FPAS JY method motors qclgui;
 
 disp('shutting down');
 
@@ -544,6 +563,12 @@ delete(FPAS);
 
 % disp('clean up File System')
 % delete(FS);
+
+
+if ~isempty(qclgui) && isvalid(qclgui)
+    disp('clean up QCL Laser')
+    delete(qclgui)
+end
  
 disp('close figure')
 delete(gcbf);
@@ -949,4 +974,46 @@ function slider2_CreateFcn(hObject, eventdata, handles)
 % Hint: slider controls usually have a light gray background.
 if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor',[.9 .9 .9]);
+end
+
+
+% --- Executes on selection change in pumLaserSource.
+function pumLaserSource_Callback(hObject, eventdata, handles)
+% hObject    handle to pumLaserSource (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = cellstr(get(hObject,'String')) returns pumLaserSource contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from pumLaserSource
+global qclgui
+
+selValue = get(hObject, 'Value');
+
+switch selValue
+    case 1
+        if ~isempty(qclgui) || isvalid(qclgui)
+            timer = timerfind('tag', 'updateQCLInfo');
+            timerStatus = get(timer, 'Running');
+            if strcmp(timerStatus,'on')
+                stop(timer)
+            end
+            delete(timerfind('tag', 'updateQCLInfo'));
+            delete(qclgui);
+        end
+    case 2
+        qclgui = QCLGUI;
+    otherwise
+end
+
+
+% --- Executes during object creation, after setting all properties.
+function pumLaserSource_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to pumLaserSource (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
 end

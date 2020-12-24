@@ -249,6 +249,10 @@ classdef Method < handle
     %YDataSource properly configured
     function RefreshPlots(obj,hPlots,hAutoScaleToggle)
       refreshdata(hPlots, 'caller');
+      if isa(hPlots, 'matlab.graphics.chart.primitive.Contour')
+          set(hPlots, 'LevelList', linspace(-max(obj.signal.data(:,:,1), [], 'all'),...
+              max(obj.signal.data(:,:,1), [], 'all'), 12));
+      end
     end
     
     %untested

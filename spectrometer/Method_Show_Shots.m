@@ -184,11 +184,18 @@ methods (Access = protected)
   %initialize the data acquisition event and move motors to their
   %starting positions
   function ScanInitialize(obj)
+    global timerObject;
+    if ~isempty(timerObject)
+        stop(timerObject);
+    end
+    
     ReadParameters(obj);
     
     InitializeFreqAxis(obj);
     
     InitializeData(obj);
+    
+    InitializeMainPlot(obj);
 
     InitializeTask(obj);
     %just leave motors where they are
@@ -260,9 +267,13 @@ methods (Access = protected)
   
   %move the motors back to their zero positions. Clear the ADC tasks.
   function ScanCleanup(obj)
+    global timerObject;
     obj.source.gate.CloseClockGate;
     obj.source.sampler.ClearTask;
     %no need to move motors back to zero
+    if ~isempty(timerObject);
+        start(timerObject);
+    end
   end
    
   function ProcessSampleSort(obj)
