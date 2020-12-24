@@ -136,7 +136,13 @@ classdef (Sealed) Monochromator_JY < handle
       end
       
       function out = get.initialized(obj)
-        out = obj.mono.InitializeComplete;
+          try
+            out = obj.mono.InitializeComplete;
+          catch E
+              out = 0;
+              warning(E.identifier, 'Monochromator');
+              warning('Error Initializing.  Enter simulation mode.');
+          end
       end
     end
     
